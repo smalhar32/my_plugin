@@ -3,7 +3,7 @@
 Plugin Name: My Plugin Self-Updater
 Plugin URL: https://github.com/smalh/my_plugin
 Description: A robust, self-updating RISE CRM (CodeIgniter 4) plugin that pulls releases from GitHub. 100% self-contained, daily cached checks, secure Zip Slip protection, and beautiful glassmorphic Admin UI.
-Version: 1.0.3
+Version: 1.0.5
 Author: Antigravity
 Author URL: https://google.com
 Requires at least: 1.0.0
@@ -12,7 +12,7 @@ Requires at least: 1.0.0
 defined('PLUGINPATH') or exit('No direct script access allowed');
 
 // Constants
-define('MY_PLUGIN_NAME', basename(__DIR__));
+define('MY_PLUGIN_NAME', 'my_plugin');
 
 // Set your GitHub repository details: replace these placeholders with your actual details
 $repo_owner = "smalhar32"; // E.g., "mycompany" or "smalhar32"
@@ -23,20 +23,12 @@ define('MY_PLUGIN_GITHUB_REPO', $repo_owner . '/' . $repo_name);
 // Register Lifecycle Hooks
 if (function_exists('register_installation_hook')) {
     register_installation_hook(MY_PLUGIN_NAME, "my_plugin_install");
-} else if (function_exists('app_hooks')) {
-    app_hooks()->add_action("app_hook_install_plugin_" . MY_PLUGIN_NAME, "my_plugin_install");
 }
-
 if (function_exists('register_uninstallation_hook')) {
     register_uninstallation_hook(MY_PLUGIN_NAME, "my_plugin_uninstall");
-} else if (function_exists('app_hooks')) {
-    app_hooks()->add_action("app_hook_uninstall_plugin_" . MY_PLUGIN_NAME, "my_plugin_uninstall");
 }
-
 if (function_exists('register_update_hook')) {
     register_update_hook(MY_PLUGIN_NAME, "my_plugin_update");
-} else if (function_exists('app_hooks')) {
-    app_hooks()->add_action("app_hook_update_plugin_" . MY_PLUGIN_NAME, "my_plugin_update");
 }
 
 // Hook globally to inject CSS stylesheets into the head section
@@ -45,7 +37,7 @@ if (function_exists('app_hooks')) {
     // Hook globally to inject the Update Available banner in the main layout
     app_hooks()->add_action("app_hook_layout_main_view_extension", "my_plugin_inject_alert_banner");
     // Hook to inject action links on Plugins native page
-    app_hooks()->add_filter("app_filter_action_links_of_" . MY_PLUGIN_NAME, "my_plugin_action_links");
+    app_hooks()->add_filter("app_filter_action_links_of_my_plugin", "my_plugin_action_links");
 }
 
 /**
@@ -452,31 +444,6 @@ if (!function_exists('my_plugin_inject_alert_banner')) {
 
             // Appends the premium glassmorphic alert dynamically
             function showMyPluginUpdateBanner(latestVersion) {
-                // If on native System Updates page, dynamically inject inline alert in the Updates card!
-                if ($("#app-update-container").length > 0) {
-                    if ($(".my-plugin-updates-section-alert").length === 0) {
-                        var inlineAlertHtml = 
-                            '<div class="alert alert-info mt15 my-plugin-updates-section-alert" style="border: 1px solid rgba(139, 92, 246, 0.35); background: rgba(99, 102, 241, 0.05); border-radius: 12px; padding: 20px; display: flex; align-items: center; justify-content: space-between; font-family: \'Outfit\', \'Inter\', sans-serif; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.05); margin-top: 20px; color: #475569;">' +
-                            '  <div style="display: flex; align-items: center; gap: 12px;">' +
-                            '    <span class="my-plugin-update-pulse" style="margin-top: 2px;"></span>' +
-                            '    <div>' +
-                            '      <strong style="color: #6366f1; font-size: 15px;">My Plugin Self-Updater</strong> <span class="badge bg-warning ml5" style="font-size: 10px; text-transform: uppercase;">Update Available</span>' +
-                            '      <br/><span style="font-size: 12px; color: #64748b;">A new version <strong style="color: #818cf8;">v' + latestVersion + '</strong> is fully validated and ready for installation.</span>' +
-                            '    </div>' +
-                            '  </div>' +
-                            '  <button id="myPluginTriggerUpdate" class="btn btn-primary my-plugin-update-btn-primary" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); border: none; font-weight: 600; padding: 10px 20px; border-radius: 10px; color: #ffffff; display: flex; align-items: center; gap: 8px;">' +
-                            '    <span class="my-plugin-spinner"></span>' +
-                            '    <i data-feather="cloud-lightning" style="width: 14px; height: 14px;"></i>' +
-                            '    One-Click Update' +
-                            '  </button>' +
-                            '</div>';
-                        
-                        $("#app-update-container").append(inlineAlertHtml);
-                        if (window.feather) feather.replace();
-                    }
-                    return; // Skip displaying floating panel if inline alert is shown
-                }
-
                 if ($(".my-plugin-update-alert-container").length > 0) return;
 
                 var bannerHtml = 
