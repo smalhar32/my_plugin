@@ -3,7 +3,7 @@
 Plugin Name: My Plugin Self-Updater
 Plugin URL: https://github.com/smalh/my_plugin
 Description: A robust, self-updating RISE CRM (CodeIgniter 4) plugin that pulls releases from GitHub. 100% self-contained, daily cached checks, secure Zip Slip protection, and beautiful glassmorphic Admin UI.
-Version: 1.0.0
+Version: 1.0.3
 Author: Antigravity
 Author URL: https://google.com
 Requires at least: 1.0.0

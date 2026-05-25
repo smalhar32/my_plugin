@@ -22,7 +22,7 @@ class Updater extends Security_Controller {
      */
     public function check_for_updates() {
         // Enforce POST requests to block hotlinking
-        if ($this->request->getMethod() !== 'post') {
+        if (strtolower($this->request->getMethod()) !== 'post') {
             return $this->response->setStatusCode(405)->setJSON(array("success" => false, "message" => "Method Not Allowed"));
         }
 
@@ -133,7 +133,7 @@ class Updater extends Security_Controller {
      */
     public function update() {
         // Enforce POST requests to prevent malicious trigger execution
-        if ($this->request->getMethod() !== 'post') {
+        if (strtolower($this->request->getMethod()) !== 'post') {
             return $this->response->setStatusCode(405)->setJSON(array("success" => false, "message" => "Method Not Allowed"));
         }
 
