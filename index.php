@@ -15,7 +15,7 @@ defined('PLUGINPATH') or exit('No direct script access allowed');
 define('MY_PLUGIN_NAME', 'my_plugin');
 
 // Set your GitHub repository details: replace these placeholders with your actual details
-$repo_owner = "smalh"; // E.g., "mycompany" or "smalh"
+$repo_owner = "smalhar32"; // E.g., "mycompany" or "smalhar32"
 $repo_name = "my_plugin";        // E.g., "rise-crm-webhook-plugin" or "my_plugin"
 
 define('MY_PLUGIN_GITHUB_REPO', $repo_owner . '/' . $repo_name);
