@@ -13,7 +13,8 @@ class Updater extends Security_Controller {
 
     function __construct() {
         parent::__construct();
-        // Let any logged-in user use the updater pipeline (Access authentication is secured by Security_Controller)
+        // Force strict administrator-only authorization check
+        $this->access_only_admin();
     }
 
     /**
@@ -283,11 +284,9 @@ class Updater extends Security_Controller {
         // 4. Trigger safe SQL database migrations in index.php (Zero Data Loss design)
         app_hooks()->do_action("app_hook_update_plugin_" . MY_PLUGIN_NAME);
 
-        // Reset settings caches completely to avoid any stale data lingering
+        // Reset settings caches
         $Settings_model = model("App\Models\Settings_model");
         $Settings_model->save_setting("my_plugin_update_available", "0");
-        $Settings_model->save_setting("my_plugin_latest_version", "");
-        $Settings_model->save_setting("my_plugin_download_url", "");
         $Settings_model->save_setting("my_plugin_last_check_date", date("Y-m-d"));
 
         return $this->response->setJSON(array(
