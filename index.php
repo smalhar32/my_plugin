@@ -12,7 +12,7 @@ Requires at least: 1.0.0
 defined('PLUGINPATH') or exit('No direct script access allowed');
 
 // Constants
-define('MY_PLUGIN_NAME', 'my_plugin');
+define('MY_PLUGIN_NAME', basename(__DIR__));
 
 // Set your GitHub repository details: replace these placeholders with your actual details
 $repo_owner = "smalhar32"; // E.g., "mycompany" or "smalhar32"
@@ -23,12 +23,20 @@ define('MY_PLUGIN_GITHUB_REPO', $repo_owner . '/' . $repo_name);
 // Register Lifecycle Hooks
 if (function_exists('register_installation_hook')) {
     register_installation_hook(MY_PLUGIN_NAME, "my_plugin_install");
+} else if (function_exists('app_hooks')) {
+    app_hooks()->add_action("app_hook_install_plugin_" . MY_PLUGIN_NAME, "my_plugin_install");
 }
+
 if (function_exists('register_uninstallation_hook')) {
     register_uninstallation_hook(MY_PLUGIN_NAME, "my_plugin_uninstall");
+} else if (function_exists('app_hooks')) {
+    app_hooks()->add_action("app_hook_uninstall_plugin_" . MY_PLUGIN_NAME, "my_plugin_uninstall");
 }
+
 if (function_exists('register_update_hook')) {
     register_update_hook(MY_PLUGIN_NAME, "my_plugin_update");
+} else if (function_exists('app_hooks')) {
+    app_hooks()->add_action("app_hook_update_plugin_" . MY_PLUGIN_NAME, "my_plugin_update");
 }
 
 // Hook globally to inject CSS stylesheets into the head section
@@ -36,6 +44,8 @@ if (function_exists('app_hooks')) {
     app_hooks()->add_action("app_hook_head_extension", "my_plugin_inject_assets");
     // Hook globally to inject the Update Available banner in the main layout
     app_hooks()->add_action("app_hook_layout_main_view_extension", "my_plugin_inject_alert_banner");
+    // Hook to inject action links on Plugins native page
+    app_hooks()->add_filter("app_filter_action_links_of_" . MY_PLUGIN_NAME, "my_plugin_action_links");
 }
 
 /**
@@ -105,15 +115,28 @@ if (!function_exists('my_plugin_update')) {
 }
 
 /**
+ * Injects update action link on native RISE CRM Plugins page when an update is available.
+ */
+if (!function_exists('my_plugin_action_links')) {
+    function my_plugin_action_links($action_links) {
+        if (get_setting("my_plugin_update_available") === "1") {
+            $latest = get_setting("my_plugin_latest_version");
+            $action_links[] = '<a href="#" id="myPluginTriggerUpdate" class="text-warning" style="font-weight: bold;"><i data-feather="cloud-lightning" class="icon-14" style="vertical-align: middle; margin-right: 2px;"></i> Update Available: ' . $latest . ' (Click to Update)</a>';
+        } else {
+            $action_links[] = '<a href="#" id="myPluginTriggerCheck" class="text-primary"><i data-feather="refresh-cw" class="icon-14" style="vertical-align: middle; margin-right: 2px;"></i> Check for Updates</a>';
+        }
+        return $action_links;
+    }
+}
+
+/**
  * Injects CSS premium glassmorphic styling into head section for administrator users.
  */
 if (!function_exists('my_plugin_inject_assets')) {
     function my_plugin_inject_assets() {
         $session_user_id = \Config\Services::session()->get('user_id');
-        $login_user = $session_user_id ? model('App\Models\Users_model')->get_one(clean_data($session_user_id)) : null;
-
-        // Enforce only staff administrator users see visual update cues
-        if (!$login_user || !isset($login_user->is_admin) || !$login_user->is_admin) {
+        // Check if the user is logged in
+        if (!$session_user_id) {
             return;
         }
 
@@ -301,9 +324,8 @@ if (!function_exists('my_plugin_inject_assets')) {
 if (!function_exists('my_plugin_inject_alert_banner')) {
     function my_plugin_inject_alert_banner() {
         $session_user_id = \Config\Services::session()->get('user_id');
-        $login_user = $session_user_id ? model('App\Models\Users_model')->get_one(clean_data($session_user_id)) : null;
-
-        if (!$login_user || !isset($login_user->is_admin) || !$login_user->is_admin) {
+        // Check if the user is logged in
+        if (!$session_user_id) {
             return;
         }
 
@@ -391,10 +413,70 @@ if (!function_exists('my_plugin_inject_alert_banner')) {
                         $(this).remove();
                     });
                 });
+
+                // Handle manual check for updates from other CRM users
+                $(document).on("click", "#myPluginTriggerCheck", function(e) {
+                    e.preventDefault();
+                    var $btn = $(this);
+                    $btn.html("<i data-feather='refresh-cw' class='icon-14' style='vertical-align: middle; margin-right: 2px; animation: myPluginSpin 1s linear infinite;'></i> Checking...");
+                    if (window.feather) feather.replace();
+
+                    $.ajax({
+                        url: "<?php echo get_uri('my_plugin/updater/check_for_updates'); ?>",
+                        type: 'POST',
+                        dataType: 'json',
+                        success: function(res) {
+                            if (res.success && res.update_available) {
+                                showMyPluginUpdateBanner(res.latest_version);
+                                window.location.reload();
+                            } else {
+                                $btn.html("<i data-feather='check-circle' class='icon-14' style='color: #22c55e; vertical-align: middle; margin-right: 2px;'></i> Up to date!");
+                                if (window.feather) feather.replace();
+                                setTimeout(function() {
+                                    $btn.html("<i data-feather='refresh-cw' class='icon-14' style='vertical-align: middle; margin-right: 2px;'></i> Check for Updates");
+                                    if (window.feather) feather.replace();
+                                }, 2000);
+                            }
+                        },
+                        error: function() {
+                            $btn.html("<i data-feather='alert-circle' class='icon-14' style='color: #ef4444; vertical-align: middle; margin-right: 2px;'></i> Check failed");
+                            if (window.feather) feather.replace();
+                            setTimeout(function() {
+                                $btn.html("<i data-feather='refresh-cw' class='icon-14' style='vertical-align: middle; margin-right: 2px;'></i> Check for Updates");
+                                if (window.feather) feather.replace();
+                            }, 2000);
+                        }
+                    });
+                });
             });
 
             // Appends the premium glassmorphic alert dynamically
             function showMyPluginUpdateBanner(latestVersion) {
+                // If on native System Updates page, dynamically inject inline alert in the Updates card!
+                if ($("#app-update-container").length > 0) {
+                    if ($(".my-plugin-updates-section-alert").length === 0) {
+                        var inlineAlertHtml = 
+                            '<div class="alert alert-info mt15 my-plugin-updates-section-alert" style="border: 1px solid rgba(139, 92, 246, 0.35); background: rgba(99, 102, 241, 0.05); border-radius: 12px; padding: 20px; display: flex; align-items: center; justify-content: space-between; font-family: \'Outfit\', \'Inter\', sans-serif; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.05); margin-top: 20px; color: #475569;">' +
+                            '  <div style="display: flex; align-items: center; gap: 12px;">' +
+                            '    <span class="my-plugin-update-pulse" style="margin-top: 2px;"></span>' +
+                            '    <div>' +
+                            '      <strong style="color: #6366f1; font-size: 15px;">My Plugin Self-Updater</strong> <span class="badge bg-warning ml5" style="font-size: 10px; text-transform: uppercase;">Update Available</span>' +
+                            '      <br/><span style="font-size: 12px; color: #64748b;">A new version <strong style="color: #818cf8;">v' + latestVersion + '</strong> is fully validated and ready for installation.</span>' +
+                            '    </div>' +
+                            '  </div>' +
+                            '  <button id="myPluginTriggerUpdate" class="btn btn-primary my-plugin-update-btn-primary" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); border: none; font-weight: 600; padding: 10px 20px; border-radius: 10px; color: #ffffff; display: flex; align-items: center; gap: 8px;">' +
+                            '    <span class="my-plugin-spinner"></span>' +
+                            '    <i data-feather="cloud-lightning" style="width: 14px; height: 14px;"></i>' +
+                            '    One-Click Update' +
+                            '  </button>' +
+                            '</div>';
+                        
+                        $("#app-update-container").append(inlineAlertHtml);
+                        if (window.feather) feather.replace();
+                    }
+                    return; // Skip displaying floating panel if inline alert is shown
+                }
+
                 if ($(".my-plugin-update-alert-container").length > 0) return;
 
                 var bannerHtml = 

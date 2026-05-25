@@ -13,8 +13,7 @@ class Updater extends Security_Controller {
 
     function __construct() {
         parent::__construct();
-        // Force strict administrator-only authorization check
-        $this->access_only_admin();
+        // Let any logged-in user use the updater pipeline (Access authentication is secured by Security_Controller)
     }
 
     /**
