@@ -3,7 +3,7 @@
 Plugin Name: My Plugin Self-Updater
 Plugin URL: https://github.com/smalh/my_plugin
 Description: A robust, self-updating RISE CRM (CodeIgniter 4) plugin that pulls releases from GitHub. 100% self-contained, daily cached checks, secure Zip Slip protection, and beautiful glassmorphic Admin UI.
-Version: 1.0.6
+Version: 1.0.7
 Author: Antigravity
 Author URL: https://google.com
 Requires at least: 1.0.0
@@ -78,6 +78,39 @@ if (!function_exists('my_plugin_uninstall')) {
 
         // Clean up settings from global settings table
         $db->query("DELETE FROM `{$prefix}settings` WHERE `setting_name` LIKE 'my_plugin_%';");
+
+        // Dynamically clear out the local `.git` directory if it exists,
+        // clearing any Windows read-only flags to prevent rmdir() "Directory not empty" crashes.
+        $git_dir = PLUGINPATH . MY_PLUGIN_NAME . '/.git';
+        if (is_dir($git_dir)) {
+            my_plugin_delete_git_folder($git_dir);
+        }
+    }
+}
+
+if (!function_exists('my_plugin_delete_git_folder')) {
+    function my_plugin_delete_git_folder($dir) {
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $files = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+
+        foreach ($files as $fileinfo) {
+            $path = $fileinfo->getRealPath();
+            if ($fileinfo->isDir()) {
+                @rmdir($path);
+            } else {
+                if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                    @chmod($path, 0777);
+                }
+                @unlink($path);
+            }
+        }
+        @rmdir($dir);
     }
 }
 
